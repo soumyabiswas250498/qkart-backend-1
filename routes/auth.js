@@ -5,9 +5,24 @@ var { users } = require("../db");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const config = require("../config.json");
+const fs = require('fs');
+const path = require('path');
+
+// Define path to the users database file
+const usersDbPath = path.join(__dirname, '..', 'db', 'users.db');
+
+// Check if the users database file exists
+if (!fs.existsSync(usersDbPath)) {
+  console.error(`Error: ${usersDbPath} does not exist.`);
+}
 
 router.post("/register", (req, res) => {
-  console.log(`GET request to "/auth/register" received for user}`);
+  console.log(`POST request to "/auth/register" received`);
+
+  // Ensure the users database file exists before proceeding
+  if (!fs.existsSync(usersDbPath)) {
+    return res.status(500).json({ error: "Users database file is missing." });
+  }
 
   users.findOne({ username: req.body.username }, (err, user) => {
     if (err) {
@@ -19,20 +34,7 @@ router.post("/register", (req, res) => {
         message: "Username already exists",
       });
     }
-    // if (req.body.username.length < 6 || req.body.username.length > 32) {
-    //     return res.status(400).json({
-    //         success: false,
-    //         message:
-    //             'Username must be between 6 and 32 characters in length'
-    //     });
-    // }
-    // if (req.body.password.length < 6 || req.body.password.length > 32) {
-    //     return res.status(400).json({
-    //         success: false,
-    //         message:
-    //             'Password must be between 6 and 32 characters in length'
-    //     });
-    // }
+
     users.insert({
       username: req.body.username,
       password: sha256(req.body.password),
@@ -51,6 +53,10 @@ router.post("/register", (req, res) => {
 
 router.post("/login", (req, res) => {
   console.log(`POST request to "/auth/login" received`);
+
+  if (!fs.existsSync(usersDbPath)) {
+    return res.status(500).json({ error: "Users database file is missing." });
+  }
 
   users.findOne({ username: req.body.username }, (err, user) => {
     if (err) {
